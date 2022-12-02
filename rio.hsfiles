@@ -75,7 +75,6 @@ module Main (main) where
 
 import Import
 import Run
-import RIO.Process
 import Options.Applicative.Simple
 import qualified Paths_{{name-as-varid}}
 
@@ -92,15 +91,7 @@ main = do
                   )
     )
     empty
-  lo <- logOptionsHandle stderr (optionsVerbose options)
-  pc <- mkDefaultProcessContext
-  withLogFunc lo $ \lf ->
-    let app = App
-          { appLogFunc = lf
-          , appProcessContext = pc
-          , appOptions = options
-          }
-     in runRIO app run
+  runAppWith options run
 
 {-# START_FILE src/Import.hs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -115,9 +106,29 @@ import Types
 {-# START_FILE src/Run.hs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Run (run) where
+module Run
+  ( run
+  , runApp
+  , runAppWith
+  ) where
 
 import Import
+import RIO.Process
+
+runApp :: RIO App a -> IO a
+runApp = runAppWith defaultOptions
+
+runAppWith :: Options -> RIO App a -> IO a
+runAppWith options cmd = do
+  lo <- logOptionsHandle stderr (optionsVerbose options)
+  pc <- mkDefaultProcessContext
+  withLogFunc lo $ \lf ->
+    let app = App
+          { appLogFunc = lf
+          , appProcessContext = pc
+          , appOptions = options
+          }
+     in runRIO app cmd
 
 run :: RIO App ()
 run = do
@@ -128,6 +139,7 @@ run = do
 module Types
   ( App (..)
   , Options (..)
+  , defaultOptions
   ) where
 
 import RIO
@@ -137,6 +149,10 @@ import RIO.Process
 data Options = Options
   { optionsVerbose :: !Bool
   }
+
+defaultOptions :: Options
+defaultOptions = Options
+  { optionsVerbose = False }
 
 data App = App
   { appLogFunc :: !LogFunc
