@@ -39,7 +39,7 @@ library:
   source-dirs: src
 
 executables:
-  {{name}}-exe:
+  {{name}}:
     main:                Main.hs
     source-dirs:         app
     dependencies:
@@ -58,6 +58,19 @@ tests:
     dependencies:
     - {{name}}
     - hspec
+
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+
+benchmarks:
+  {{name}}-bench:
+    main:               Bench.hs
+    source-dirs:        bench
+    dependencies:
+    - {{name}}
+    - criterion
 
     ghc-options:
     - -threaded
@@ -197,6 +210,28 @@ spec = do
     it "basic check" $ plus2 0 `shouldBe` 2
     it "overflow" $ plus2 maxBound `shouldBe` minBound + 1
     prop "minus 2" $ \i -> plus2 i - 2 `shouldBe` i
+
+{-# START_FILE bench/Bench.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+module Main (main) where
+
+import Import
+import Criterion.Main
+
+fib :: Integer -> Integer
+fib m | m < 0     = error "negative!"
+      | otherwise = go m
+  where go 0 = 0
+        go 1 = 1
+        go n = go (n-1) + go (n-2)
+
+main :: IO ()
+main = defaultMain [
+  bgroup "fib" [ bench "1"  $ whnf fib 1
+               , bench "5"  $ whnf fib 5
+               , bench "11" $ whnf fib 11
+               ]
+  ]
 
 {-# START_FILE README.md #-}
 # {{name}}
